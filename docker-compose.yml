@@ -9,7 +9,7 @@ services:
     command: --init-file init.sql
     volumes:
       - db_data:/var/lib/mysql
-      - ./init.sql:./init.sql
+      - ./init.sql:/init.sql
     networks:
       - app-network
   data-generator:

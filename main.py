@@ -16,6 +16,14 @@ try:
 except mysql.connector.Error as e:
     print(f"Генератор данных не подключен к базе данных: {e}")
 while True:
+    sql = f"INSERT INTO weather (temperature, humidity, pressure, wind_speed) VALUES ({temperature}, {humidity}, {pressure}, {windSpeed})"
+    if connection is not None:
+        try:
+            connection.cursor().execute(sql)
+            connection.commit()
+            print(f"Записаны данные: температура = {temperature}, влажность = {humidity}, давление = {pressure}, скорость ветра = {windSpeed}")
+        except mysql.connector.Error as e:
+            print(f"Не удалось вставить данные в базу данных: {e}")
     temperature = round(temperature + random.uniform(-0.05, 0.05), 2)
     if temperature > 15:
         temperature -= 0.1

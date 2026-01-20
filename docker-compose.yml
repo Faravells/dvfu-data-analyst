@@ -51,8 +51,8 @@ services:
     depends_on:
       - postgres
       - redis
-    command:
-      sh -c "/app/bin/run python /app/manage.py database create_tables && /app/bin/run python /app/manage.py database upgrade"
+    command: >
+      sh -c "/app/bin/wait-for-it postgres:5432 --timeout=30 --strict -- /app/bin/run python /app/manage.py create_db"
     networks:
       - app-network
     restart: "no"
@@ -74,6 +74,12 @@ services:
     restart: always
     networks:
       - app-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
   scheduler:
     image: redash/redash:latest
     depends_on:
@@ -105,7 +111,8 @@ services:
     ports:
       - "80:80"
     depends_on:
-      - redash-server
+      redash-server:
+        condition: service_healthy
     restart: always
     networks:
       - app-network

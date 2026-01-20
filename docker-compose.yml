@@ -6,10 +6,9 @@ services:
       MYSQL_DATABASE: weather_station
     ports:
       - "3306:3306"
-    command: --init-file init.sql
     volumes:
       - db_data:/var/lib/mysql
-      - ./init.sql:/init.sql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - app-network
   data-generator:

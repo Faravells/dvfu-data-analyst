@@ -1,3 +1,6 @@
+ALTER USER 'root'@'%' IDENTIFIED WITH mysql_native_password BY 'root';
+FLUSH PRIVILEGES;
+
 CREATE DATABASE IF NOT EXISTS weather_station;
 USE weather_station;
 CREATE TABLE IF NOT EXISTS weather (

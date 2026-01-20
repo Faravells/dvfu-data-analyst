@@ -11,6 +11,15 @@ services:
       - db_data:/var/lib/mysql
     networks:
       - app_network
+  data-generator:
+    environment:
+      DB_HOST: mysql
+      DB_USER: root
+      DB_PASSWORD: root
+      DB_NAME: weather_station
+      DB_PORT: 3306
+    networks:
+      - weather_network
 volumes:
   db_data:
 networks:

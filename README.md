@@ -11,5 +11,6 @@ Cоздать простую end-to-end систему, которая гене�
 - git clone https://github.com/Faravells/dvfu-data-analyst
 - cd dvfu-data-analyst
 - docker-compose up
+- После загрузки и запуска контейнера, зайти на http://localhost:5000/ и начать работу с Redash
 ### Работа с Redash
 <img width="1888" height="865" alt="image" src="https://github.com/user-attachments/assets/2aca0633-8343-4962-92a8-362c49b30c18" />

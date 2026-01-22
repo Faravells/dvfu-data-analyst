@@ -1,0 +1,169 @@
+services:
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: weather_station
+    command: 
+      --default-authentication-plugin=mysql_native_password
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$$MYSQL_ROOT_PASSWORD"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+  data-generator:
+    build: .
+    environment:
+      DB_HOST: mysql
+      DB_USER: root
+      DB_PASSWORD: root
+      DB_NAME: weather_station
+      DB_PORT: 3306
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - app-network
+  postgres:
+    image: postgres:14
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: redash
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: always
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  redis:
+    image: redis:8.4
+    restart: always
+    command: redis-server --appendonly yes
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  redash-create-db:
+    image: redash/redash:latest
+    environment:
+      REDASH_DATABASE_URL: postgresql://postgres:root@postgres/redash
+      REDASH_REDIS_URL: redis://redis:6379/0
+      REDASH_COOKIE_SECRET: weather_station_secret
+      REDASH_SECRET_KEY: weather_station_secret_key
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    entrypoint: []
+    command: /app/manage.py database create_tables
+    networks:
+      - app-network
+    restart: "no"
+  redash:
+    image: redash/redash:latest
+    ports:
+      - "5000:5000"
+    command: >
+      bash -c "
+      echo 'Waiting for Redis...';
+      timeout 60 bash -c 'until redis-cli -h redis -p 6379 ping >/dev/null 2>&1; do sleep 2; done';
+      echo 'Redis is ready!';
+      /app/bin/docker-entrypoint server"
+    environment:
+      REDASH_DATABASE_URL: postgresql://postgres:root@postgres/redash
+      REDASH_REDIS_URL: redis://redis:6379/0
+      REDASH_LOG_LEVEL: INFO
+      REDASH_COOKIE_SECRET: weather_station_secret
+      REDASH_SECRET_KEY: weather_station_secret_key
+      REDASH_HOST: http://localhost:5000
+      REDASH_ENABLE_VERSION_CHECK: "false"
+      REDASH_CHECK_FOR_UPDATES: "false"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      redash-create-db:
+        condition: service_completed_successfully
+    restart: always
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+  scheduler:
+    image: redash/redash:latest
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      redash-create-db:
+        condition: service_completed_successfully
+    environment:
+      REDASH_LOG_LEVEL: INFO
+      REDASH_REDIS_URL: redis://redis:6379/0
+      REDASH_DATABASE_URL: postgresql://postgres:root@postgres/redash
+      REDASH_COOKIE_SECRET: weather_station_secret
+      REDASH_SECRET_KEY: weather_station_secret_key
+    command: scheduler
+    restart: always
+    networks:
+      - app-network
+  scheduled_worker:
+    image: redash/redash:latest
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      redash-create-db:
+        condition: service_completed_successfully
+    environment:
+      REDASH_LOG_LEVEL: INFO
+      REDASH_REDIS_URL: redis://redis:6379/0
+      REDASH_DATABASE_URL: postgresql://postgres:root@postgres/redash
+      REDASH_COOKIE_SECRET: weather_station_secret
+      REDASH_SECRET_KEY: weather_station_secret_key
+    restart: always
+    command: worker
+    networks:
+      - app-network
+  nginx:
+    image: redash/nginx:latest
+    ports:
+      - "80:80"
+    depends_on:
+      redash:
+        condition: service_healthy
+    restart: always
+    networks:
+      - app-network
+volumes:
+  db_data:
+  postgres_data:
+networks:
+  app-network:
+    driver: bridge

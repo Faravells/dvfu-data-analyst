@@ -117,6 +117,8 @@ services:
       REDASH_LOG_LEVEL: INFO
       REDASH_REDIS_URL: redis://redis:6379/0
       REDASH_DATABASE_URL: postgresql://postgres:root@postgres/redash
+      REDASH_COOKIE_SECRET: weather_station_secret
+      REDASH_SECRET_KEY: weather_station_secret_key
     command: scheduler
     restart: always
     networks:
@@ -134,6 +136,8 @@ services:
       REDASH_LOG_LEVEL: INFO
       REDASH_REDIS_URL: redis://redis:6379/0
       REDASH_DATABASE_URL: postgresql://postgres:root@postgres/redash
+      REDASH_COOKIE_SECRET: weather_station_secret
+      REDASH_SECRET_KEY: weather_station_secret_key
     restart: always
     command: worker
     networks:

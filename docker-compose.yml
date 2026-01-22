@@ -69,7 +69,7 @@ services:
     networks:
       - app-network
     restart: "no"
-  redash-server:
+  redash:
     image: redash/redash:latest
     ports:
       - "5000:5000"
@@ -143,7 +143,7 @@ services:
     ports:
       - "80:80"
     depends_on:
-      redash-server:
+      redash:
         condition: service_healthy
     restart: always
     networks:
